@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historique des Données Machine</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --light: #ecf0f1;
+            --dark: #34495e;
+            --gray: #7f8c8d;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--dark) 100%);
+            color: white;
+            padding: 20px;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.2);
+            transition: background-color 0.3s;
+        }
+        
+        .nav a:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .clear-btn {
+            background-color: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .clear-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .table-container {
+            padding: 25px;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            min-width: 1000px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: var(--primary);
+            color: white;
+            position: sticky;
+            top: 0;
+            font-weight: 500;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tr:hover {
+            background-color: #e9f7fe;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
+            text-align: center;
+            min-width: 70px;
+        }
+        
+        .status-normal {
+            background-color: rgba(46, 204, 113, 0.2);
+            color: var(--success);
+        }
+        
+        .status-fault {
+            background-color: rgba(231, 76, 60, 0.2);
+            color: var(--danger);
+        }
+        
+        .probability-cell {
+            font-weight: 500;
+        }
+        
+        .high-prob {
+            color: var(--danger);
+        }
+        
+        .medium-prob {
+            color: var(--warning);
+        }
+        
+        .low-prob {
+            color: var(--success);
+        }
+        
+        .timestamp-cell {
+            white-space: nowrap;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray);
+            font-style: italic;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .alert-success {
+            background-color: rgba(46, 204, 113, 0.2);
+            color: var(--success);
+            border-left: 4px solid var(--success);
+        }
+        
+        .alert-error {
+            background-color: rgba(231, 76, 60, 0.2);
+            color: var(--danger);
+            border-left: 4px solid var(--danger);
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+            
+            .nav {
+                flex-direction: column;
+            }
+            
+            body {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>Historique des Données Machine</h1>
+                <div class="nav">
+                    <a href="/">Tableau de bord</a>
+                    <button class="clear-btn" onclick="clearHistory()">Supprimer l'historique</button>
+                    <a href="/logout">Déconnexion</a>
+                </div>
+            </div>
+        </header>
+        
+        <div id="alert" class="alert"></div>
+        
+        <div class="table-container">
+            {% if history %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Vibration</th>
+                        <th>Température</th>
+                        <th>Pression</th>
+                        <th>RMS</th>
+                        <th>Temp Moyenne</th>
+                        <th>Probabilité de Panne</th>
+                        <th>Statut</th>
+                        <th>État du Modèle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in history %}
+                    {% set probability = (entry.ml_prediction.fault_probability * 100) | round(2) %}
+                    {% set prob_class = "high-prob" if probability > 70 else "medium-prob" if probability > 30 else "low-prob" %}
+                    <tr>
+                        <td class="timestamp-cell">
+                            {{ entry.timestamp | datetimeformat }}
+                        </td>
+                        <td>{{ entry.parametres_machine[0] }}</td>
+                        <td>{{ entry.parametres_machine[1] }}</td>
+                        <td>{{ entry.parametres_machine[2] }}</td>
+                        <td>{{ entry.parametres_machine[3] }}</td>
+                        <td>{{ entry.parametres_machine[4] }}</td>
+                        <td class="probability-cell {{ prob_class }}">{{ probability }}%</td>
+                        <td>
+                            <span class="status-badge {% if entry.ml_prediction.is_fault %}status-fault{% else %}status-normal{% endif %}">
+                                {% if entry.ml_prediction.is_fault %}Panne{% else %}Normal{% endif %}
+                            </span>
+                        </td>
+                        <td>{{ entry.ml_prediction.model_status }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-data">
+                <p>Aucune donnée historique disponible pour le moment.</p>
+                <p>Les données apparaitront ici une fois que le système commencera à recevoir des données MQTT.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        function clearHistory() {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer tout l\'historique ? Cette action est irréversible.')) {
+                return;
+            }
+            
+            fetch('/clear_history', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showAlert(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showAlert('Erreur lors de la suppression de l\'historique', 'error');
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>
