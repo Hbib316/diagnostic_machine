@@ -5,324 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Système de Diagnostic Industriel</title>
     <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #3498db;
-            --success: #2ecc71;
-            --danger: #e74c3c;
-            --warning: #f39c12;
-            --light: #ecf0f1;
-            --dark: #34495e;
-            --gray: #7f8c8d;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            color: #333;
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--dark) 100%);
-            color: white;
-            padding: 20px 0;
-            border-radius: 8px 8px 0 0;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
-        }
-        
-        h1 {
-            font-size: 28px;
-            font-weight: 600;
-        }
-        
-        .nav {
-            display: flex;
-            gap: 15px;
-        }
-        
-        .nav a {
-            color: white;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            background-color: rgba(255, 255, 255, 0.2);
-            transition: background-color 0.3s;
-        }
-        
-        .nav a:hover {
-            background-color: rgba(255, 255, 255, 0.3);
-        }
-        
-        .main-content {
-            background-color: white;
-            padding: 25px;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-        
-        .section {
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .section:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-        }
-        
-        h2 {
-            color: var(--primary);
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--secondary);
-        }
-        
-        .param-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
-        }
-        
-        .param-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-            text-align: center;
-            border-top: 4px solid var(--secondary);
-            transition: transform 0.3s;
-        }
-        
-        .param-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .param-value {
-            font-size: 28px;
-            font-weight: bold;
-            color: var(--primary);
-            margin-bottom: 8px;
-        }
-        
-        .param-label {
-            color: var(--gray);
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .prediction-container {
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            background-color: #f8f9fa;
-        }
-        
-        .prediction {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-        
-        .prediction-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-            text-align: center;
-        }
-        
-        .prediction-value {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        
-        .probability {
-            color: var(--secondary);
-        }
-        
-        .status {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-        
-        .status-normal {
-            background-color: rgba(46, 204, 113, 0.2);
-            color: var(--success);
-        }
-        
-        .status-fault {
-            background-color: rgba(231, 76, 60, 0.2);
-            color: var(--danger);
-        }
-        
-        .model-status {
-            color: var(--gray);
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: var(--gray);
-            font-style: italic;
-        }
-        
-        .timestamp {
-            text-align: center;
-            color: var(--gray);
-            font-size: 14px;
-            margin-top: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                text-align: center;
-                gap: 15px;
-            }
-            
-            .param-grid {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            }
-            
-            .prediction {
-                grid-template-columns: 1fr;
-            }
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin-bottom: 20px; }
+        .section h2 { color: #1a73e8; border-bottom: 2px solid #1a73e8; padding-bottom: 5px; }
+        .param-container { display: flex; gap: 10px; flex-wrap: wrap; }
+        .param-card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 5px; padding: 10px; text-align: center; width: 120px; }
+        .param-value { font-size: 24px; font-weight: bold; color: #333; }
+        .param-label { font-size: 14px; color: #666; }
+        #prediction { font-style: italic; }
+        .timestamp { font-size: 12px; color: #888; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="header-content">
-                <h1>Système de Diagnostic Industriel</h1>
-                <div class="nav">
-                    <a href="/history">Historique</a>
-                    <a href="/logout">Déconnexion</a>
-                </div>
-            </div>
-        </header>
-        
-        <div class="main-content">
-            <div class="section">
-                <h2>Paramètres Machine en Temps Réel</h2>
-                <div class="param-grid">
-                    <div class="param-card">
-                        <div class="param-value" id="vibration">0</div>
-                        <div class="param-label">Vibration</div>
-                    </div>
-                    <div class="param-card">
-                        <div class="param-value" id="temperature">0</div>
-                        <div class="param-label">Température</div>
-                    </div>
-                    <div class="param-card">
-                        <div class="param-value" id="pressure">0</div>
-                        <div class="param-label">Pression</div>
-                    </div>
-                    <div class="param-card">
-                        <div class="param-value" id="rms">0</div>
-                        <div class="param-label">RMS</div>
-                    </div>
-                    <div class="param-card">
-                        <div class="param-value" id="mean-temp">0</div>
-                        <div class="param-label">Temp Moyenne</div>
-                    </div>
-                </div>
-            </div>
+    <header>
+        <h1>Système de Diagnostic Industriel</h1>
+        <nav>
+            <a href="/history">Historique</a> |
+            <a href="/logout">Déconnexion</a>
+        </nav>
+    </header>
 
-            <div class="section">
-                <h2>Prédiction ML</h2>
-                <div class="prediction-container">
-                    <div id="prediction-content" class="loading">Chargement des données...</div>
+    <main>
+        <div class="section">
+            <h2>Paramètres Machine en Temps Réel</h2>
+            <div class="param-container" id="param-container">
+                <div class="param-card">
+                    <div class="param-value" id="vibration">0</div>
+                    <div class="param-label">Vibration</div>
                 </div>
-            </div>
-
-            <div class="timestamp">
-                Dernière mise à jour: <span id="timestamp">-</span>
+                <div class="param-card">
+                    <div class="param-value" id="temperature">0</div>
+                    <div class="param-label">Température</div>
+                </div>
+                <div class="param-card">
+                    <div class="param-value" id="pression">0</div>
+                    <div class="param-label">Pression</div>
+                </div>
+                <div class="param-card">
+                    <div class="param-value" id="rms">0</div>
+                    <div class="param-label">RMS</div>
+                </div>
+                <div class="param-card">
+                    <div class="param-value" id="temp_moyenne">0</div>
+                    <div class="param-label">Temp Moyenne</div>
+                </div>
             </div>
         </div>
-    </div>
+
+        <div class="section">
+            <h2>Prédiction ML</h2>
+            <div id="prediction">Chargement des données...</div>
+        </div>
+
+        <div class="section">
+            <div class="timestamp" id="timestamp">-</div>
+        </div>
+    </main>
 
     <script>
         function updateData() {
             fetch('/data')
                 .then(response => response.json())
                 .then(data => {
-                    // Mettre à jour les paramètres machine
                     document.getElementById('vibration').textContent = data.parametres_machine[0];
                     document.getElementById('temperature').textContent = data.parametres_machine[1];
-                    document.getElementById('pressure').textContent = data.parametres_machine[2];
+                    document.getElementById('pression').textContent = data.parametres_machine[2];
                     document.getElementById('rms').textContent = data.parametres_machine[3];
-                    document.getElementById('mean-temp').textContent = data.parametres_machine[4];
-                    
-                    // Mettre à jour le timestamp
-                    const timestamp = new Date(data.timestamp * 1000).toLocaleString('fr-FR');
-                    document.getElementById('timestamp').textContent = timestamp;
-                    
-                    // Mettre à jour la prédiction
-                    const prediction = data.ml_prediction;
-                    const probability = (prediction.fault_probability * 100).toFixed(2);
-                    const statusClass = prediction.is_fault ? 'status-fault' : 'status-normal';
-                    const statusText = prediction.is_fault ? 'Panne détectée' : 'Fonction normal';
-                    
-                    document.getElementById('prediction-content').innerHTML = `
-                        <div class="prediction">
-                            <div class="prediction-card">
-                                <div class="prediction-value probability">${probability}%</div>
-                                <div>Probabilité de Panne</div>
-                            </div>
-                            <div class="prediction-card">
-                                <div class="prediction-value">
-                                    <span class="status ${statusClass}">${statusText}</span>
-                                </div>
-                                <div>Statut machine</div>
-                            </div>
-                            <div class="prediction-card">
-                                <div class="prediction-value model-status">${prediction.model_status}</div>
-                                <div>État du Modèle</div>
-                            </div>
-                        </div>
-                    `;
+                    document.getElementById('temp_moyenne').textContent = data.parametres_machine[4];
+                    document.getElementById('prediction').textContent = 
+                        `Probabilité de panne: ${Math.round(data.ml_prediction.fault_probability * 100)}% - Statut: ${data.ml_prediction.is_fault ? 'Panne' : 'Normal'} (${data.ml_prediction.model_status})`;
+                    document.getElementById('timestamp').textContent = `Dernière mise à jour: ${new Date(data.timestamp * 1000).toLocaleString()}`;
                 })
-                .catch(error => {
-                    console.error('Erreur lors de la récupération des données:', error);
-                    document.getElementById('prediction-content').innerHTML = `
-                        <div class="loading">Erreur de connexion au serveur. Réessayer...</div>
-                    `;
-                });
+                .catch(error => console.error('Erreur lors de la mise à jour:', error));
         }
-        
-        // Mettre à jour les données immédiatement au chargement
-        updateData();
-        
-        // Mettre à jour les données toutes les 3 secondes
-        setInterval(updateData, 3000);
+        setInterval(updateData, 5000); // Mise à jour toutes les 5 secondes
+        updateData(); // Appel initial
     </script>
 </body>
 </html>
