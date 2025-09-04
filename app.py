@@ -6,29 +6,30 @@ from ml_service import predict_machine_fault
 import sqlite3
 import bcrypt
 from datetime import datetime
+import os
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey123"
+app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")
 
 # Store latest machine data
 latest_data = {
     "parametres_machine": [0, 0, 0, 0, 0],
-    "timestamp": 0,
+    "timestamp": datetime.now().timestamp(),
     "ml_prediction": {"fault_probability": 0.0, "is_fault": False, "model_status": "Initializing"}
 }
 
-# MQTT configuration
-MQTT_BROKER = "d736909d58a34fa6930bc5f9398c1c1b.s1.eu.hivemq.cloud"
-MQTT_PORT = 8883
-MQTT_TOPIC = "diagnostic_machine"
-MQTT_USER = "habib"
-MQTT_PASSWORD = "Password2"
+# MQTT configuration - utiliser des variables d'environnement
+MQTT_BROKER = os.environ.get("MQTT_BROKER", "d736909d58a34fa6930bc5f9398c1c1b.s1.eu.hivemq.cloud")
+MQTT_PORT = int(os.environ.get("MQTT_PORT", 8883))
+MQTT_TOPIC = os.environ.get("MQTT_TOPIC", "diagnostic_machine")
+MQTT_USER = os.environ.get("MQTT_USER", "habib")
+MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD", "Password2")
 
-# SQLite database files
-HISTORY_DB = "history.db"
-USERS_DB = "users.db"
+# SQLite database files - utiliser le répertoire /tmp pour Render
+HISTORY_DB = "/tmp/history.db"
+USERS_DB = "/tmp/users.db"
 
-# Initialize databases
+
 def init_history_db():
     conn = sqlite3.connect(HISTORY_DB)
     cursor = conn.cursor()
