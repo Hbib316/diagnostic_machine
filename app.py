@@ -12,8 +12,8 @@ app.secret_key = "supersecretkey123"
 
 # Store latest machine data
 latest_data = {
-    "parametres_machine": [?, ?, ?, ?, ?],
-    "timestamp": ?,
+    "parametres_machine": [0, 0, 0, 0, 0],
+    "timestamp": 0,
     "ml_prediction": {"fault_probability": 0.0, "is_fault": False, "model_status": "Initializing"}
 }
 
