@@ -62,7 +62,6 @@ def init_users_db():
             password TEXT NOT NULL
         )
     ''')
-    # Insert pre-created users (only if they don't exist)
     pre_created_users = [
         ("admin", "password123"),
         ("user", "test123")
@@ -101,7 +100,10 @@ def insert_history(data, prediction):
 # MQTT callback when connected
 def on_connect(client, userdata, flags, rc):
     print("Connected to MQTT!" if rc == 0 else f"MQTT connection failed: {rc}")
-    client.subscribe(MQTT_TOPIC)
+    if rc == 0:
+        client.subscribe(MQTT_TOPIC)
+    else:
+        print(f"Failed to subscribe to {MQTT_TOPIC}, return code: {rc}")
 
 # MQTT callback when message received
 def on_message(client, userdata, msg):
@@ -119,6 +121,8 @@ def on_message(client, userdata, msg):
                 }
             insert_history(latest_data, prediction)
             print(f"Received: {params}, Fault: {prediction['is_fault']}, Prob: {prediction['fault_probability']:.2%}")
+        else:
+            print(f"Invalid parameter count: {len(params)}")
     except Exception as e:
         print(f"Error processing MQTT message: {e}")
 
@@ -127,6 +131,8 @@ class MQTTManager:
     def __init__(self):
         self.client = None
         self.connected = False
+        self.reconnect_delay = 5  # Initial delay in seconds
+        self.max_reconnect_delay = 60  # Max delay
         self.setup_mqtt()
 
     def setup_mqtt(self):
@@ -135,27 +141,31 @@ class MQTTManager:
             self.client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
             self.client.on_connect = on_connect
             self.client.on_message = on_message
-            self.client.tls_set()
-            
-            # Set up callback for connection loss
             self.client.on_disconnect = self.on_disconnect
-            
+            self.client.tls_set()
             print(f"Connecting to MQTT broker: {MQTT_BROKER}:{MQTT_PORT}")
             self.client.connect(MQTT_BROKER, MQTT_PORT, 60)
             self.client.loop_start()
             self.connected = True
+            self.reconnect_delay = 5  # Reset delay on success
             print("MQTT client started successfully")
-            
         except Exception as e:
             print(f"Failed to setup MQTT: {e}")
             self.connected = False
+            self.reconnect()
 
     def on_disconnect(self, client, userdata, rc):
         self.connected = False
         print(f"MQTT disconnected with code: {rc}")
         if rc != 0:
-            print("Unexpected disconnection, attempting to reconnect...")
-            time.sleep(5)
+            print("Unexpected disconnection, scheduling reconnection...")
+            self.reconnect()
+
+    def reconnect(self):
+        if not self.connected:
+            print(f"Attempting to reconnect in {self.reconnect_delay} seconds...")
+            time.sleep(self.reconnect_delay)
+            self.reconnect_delay = min(self.reconnect_delay * 2, self.max_reconnect_delay)
             self.setup_mqtt()
 
     def is_connected(self):
@@ -177,12 +187,10 @@ def login_required(f):
 @app.template_filter('datetimeformat')
 def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
     try:
-        # Si c'est un timestamp numérique
         if isinstance(value, (int, float)):
             if value > 1e10:  # Si c'est en millisecondes
                 value = value / 1000
             return datetime.fromtimestamp(value).strftime(format)
-        # Si c'est déjà une chaîne de caractères, retournez-la telle quelle
         return value
     except (ValueError, TypeError):
         return "Format invalide"
