@@ -1,43 +1,44 @@
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session
 import paho.mqtt.client as mqtt
 import json
-from threading import Thread
+from threading import Thread, Lock
 from ml_service import predict_machine_fault
 import sqlite3
 import bcrypt
 from datetime import datetime
+import time
 import os
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")
 
-# Store latest machine data
+# Store latest machine data with thread safety
 latest_data = {
     "parametres_machine": [0, 0, 0, 0, 0],
-    "timestamp": datetime.now().timestamp(),
+    "timestamp": 0,
     "ml_prediction": {"fault_probability": 0.0, "is_fault": False, "model_status": "Initializing"}
 }
+data_lock = Lock()
 
-# MQTT configuration - utiliser des variables d'environnement
-# Remplacer la configuration MQTT
-MQTT_BROKER = "wss://d736909d58a34fa6930bc5f9398c1c1b.s1.eu.hivemq.cloud:8884/mqtt"
+# MQTT configuration - Utilisez des variables d'environnement
+MQTT_BROKER = os.environ.get("MQTT_BROKER", "d736909d58a34fa6930bc5f9398c1c1b.s1.eu.hivemq.cloud")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", 8883))
 MQTT_TOPIC = os.environ.get("MQTT_TOPIC", "diagnostic_machine")
 MQTT_USER = os.environ.get("MQTT_USER", "habib")
 MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD", "Password2")
 
-# SQLite database files - utiliser le répertoire /tmp pour Render
-HISTORY_DB = "/tmp/history.db"
-USERS_DB = "/tmp/users.db"
+# SQLite database files
+HISTORY_DB = "history.db"
+USERS_DB = "users.db"
 
-
+# Initialize databases
 def init_history_db():
     conn = sqlite3.connect(HISTORY_DB)
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS machine_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT,
+            timestamp REAL,
             vibration INTEGER,
             temperature INTEGER,
             pressure INTEGER,
@@ -61,6 +62,7 @@ def init_users_db():
             password TEXT NOT NULL
         )
     ''')
+    # Insert pre-created users (only if they don't exist)
     pre_created_users = [
         ("admin", "password123"),
         ("user", "test123")
@@ -77,20 +79,13 @@ def init_users_db():
 def insert_history(data, prediction):
     conn = sqlite3.connect(HISTORY_DB)
     cursor = conn.cursor()
-    
-    # Convert timestamp to formatted string
-    if isinstance(data["timestamp"], (int, float)):
-        timestamp_str = datetime.fromtimestamp(data["timestamp"]).strftime('%Y-%m-%d %H:%M:%S')
-    else:
-        timestamp_str = data["timestamp"]
-    
     cursor.execute('''
         INSERT INTO machine_history (
             timestamp, vibration, temperature, pressure, rms, mean_temp,
             fault_probability, is_fault, model_status
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
-        timestamp_str,
+        data["timestamp"],
         data["parametres_machine"][0],
         data["parametres_machine"][1],
         data["parametres_machine"][2],
@@ -111,27 +106,63 @@ def on_connect(client, userdata, flags, rc):
 # MQTT callback when message received
 def on_message(client, userdata, msg):
     global latest_data
-    data = json.loads(msg.payload.decode())
-    params = data.get("parametres_machine", [])
-    if len(params) == 5:
-        prediction = predict_machine_fault(params)
-        latest_data = {
-            "parametres_machine": params,
-            "timestamp": data.get("timestamp", 0),
-            "ml_prediction": prediction
-        }
-        insert_history(latest_data, prediction)
-        print(f"Received: {params}, Fault: {prediction['is_fault']}, Prob: {prediction['fault_probability']:.2%}")
+    try:
+        data = json.loads(msg.payload.decode())
+        params = data.get("parametres_machine", [])
+        if len(params) == 5:
+            prediction = predict_machine_fault(params)
+            with data_lock:
+                latest_data = {
+                    "parametres_machine": params,
+                    "timestamp": data.get("timestamp", time.time()),
+                    "ml_prediction": prediction
+                }
+            insert_history(latest_data, prediction)
+            print(f"Received: {params}, Fault: {prediction['is_fault']}, Prob: {prediction['fault_probability']:.2%}")
+    except Exception as e:
+        print(f"Error processing MQTT message: {e}")
 
-# Setup MQTT client
-def setup_mqtt():
-    client = mqtt.Client()
-    client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
-    client.on_connect = on_connect
-    client.on_message = on_message
-    client.tls_set()
-    client.connect(MQTT_BROKER, MQTT_PORT)
-    client.loop_forever()
+# Setup and manage MQTT client with reconnection
+class MQTTManager:
+    def __init__(self):
+        self.client = None
+        self.connected = False
+        self.setup_mqtt()
+
+    def setup_mqtt(self):
+        try:
+            self.client = mqtt.Client()
+            self.client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
+            self.client.on_connect = on_connect
+            self.client.on_message = on_message
+            self.client.tls_set()
+            
+            # Set up callback for connection loss
+            self.client.on_disconnect = self.on_disconnect
+            
+            print(f"Connecting to MQTT broker: {MQTT_BROKER}:{MQTT_PORT}")
+            self.client.connect(MQTT_BROKER, MQTT_PORT, 60)
+            self.client.loop_start()
+            self.connected = True
+            print("MQTT client started successfully")
+            
+        except Exception as e:
+            print(f"Failed to setup MQTT: {e}")
+            self.connected = False
+
+    def on_disconnect(self, client, userdata, rc):
+        self.connected = False
+        print(f"MQTT disconnected with code: {rc}")
+        if rc != 0:
+            print("Unexpected disconnection, attempting to reconnect...")
+            time.sleep(5)
+            self.setup_mqtt()
+
+    def is_connected(self):
+        return self.connected
+
+# Global MQTT manager
+mqtt_manager = None
 
 # Login check decorator
 def login_required(f):
@@ -146,30 +177,15 @@ def login_required(f):
 @app.template_filter('datetimeformat')
 def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
     try:
+        # Si c'est un timestamp numérique
         if isinstance(value, (int, float)):
-            if value > 1e10:
+            if value > 1e10:  # Si c'est en millisecondes
                 value = value / 1000
             return datetime.fromtimestamp(value).strftime(format)
-        elif isinstance(value, str):
-            # Si c'est déjà une chaîne formatée, la retourner telle quelle
-            return value
-        return str(value)
+        # Si c'est déjà une chaîne de caractères, retournez-la telle quelle
+        return value
     except (ValueError, TypeError):
         return "Format invalide"
-
-# Route pour supprimer l'historique
-@app.route('/clear_history', methods=['POST'])
-@login_required
-def clear_history():
-    try:
-        conn = sqlite3.connect(HISTORY_DB)
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM machine_history")
-        conn.commit()
-        conn.close()
-        return jsonify({"success": True, "message": "Historique supprimé avec succès"})
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Erreur: {str(e)}"})
 
 # Login route
 @app.route('/login', methods=['GET', 'POST'])
@@ -199,13 +215,20 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    return render_template('index.html', data=latest_data)
+    return render_template('index.html', data=latest_data, mqtt_connected=mqtt_manager.is_connected() if mqtt_manager else False)
 
 # Route for latest data
 @app.route('/data')
 @login_required
 def get_data():
-    return jsonify(latest_data)
+    with data_lock:
+        return jsonify(latest_data)
+
+# Route for MQTT status
+@app.route('/mqtt_status')
+@login_required
+def mqtt_status():
+    return jsonify({"connected": mqtt_manager.is_connected() if mqtt_manager else False})
 
 # Route for history page
 @app.route('/history')
@@ -249,10 +272,21 @@ def get_history_data():
         }
     } for row in history_data])
 
+# Health check endpoint for Render
+@app.route('/health')
+def health():
+    return jsonify({
+        "status": "healthy",
+        "mqtt_connected": mqtt_manager.is_connected() if mqtt_manager else False,
+        "timestamp": time.time()
+    })
+
 if __name__ == '__main__':
     init_history_db()
     init_users_db()
-    mqtt_thread = Thread(target=setup_mqtt)
-    mqtt_thread.daemon = True
-    mqtt_thread.start()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    
+    # Initialize MQTT manager
+    mqtt_manager = MQTTManager()
+    
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)

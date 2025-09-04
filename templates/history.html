@@ -59,7 +59,6 @@
         .nav {
             display: flex;
             gap: 15px;
-            align-items: center;
         }
         
         .nav a {
@@ -73,21 +72,6 @@
         
         .nav a:hover {
             background-color: rgba(255, 255, 255, 0.3);
-        }
-        
-        .clear-btn {
-            background-color: var(--danger);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.3s;
-        }
-        
-        .clear-btn:hover {
-            background-color: #c0392b;
         }
         
         .table-container {
@@ -171,34 +155,11 @@
             font-style: italic;
         }
         
-        .alert {
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 4px;
-            display: none;
-        }
-        
-        .alert-success {
-            background-color: rgba(46, 204, 113, 0.2);
-            color: var(--success);
-            border-left: 4px solid var(--success);
-        }
-        
-        .alert-error {
-            background-color: rgba(231, 76, 60, 0.2);
-            color: var(--danger);
-            border-left: 4px solid var(--danger);
-        }
-
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
                 text-align: center;
                 gap: 15px;
-            }
-            
-            .nav {
-                flex-direction: column;
             }
             
             body {
@@ -214,13 +175,10 @@
                 <h1>Historique des Données Machine</h1>
                 <div class="nav">
                     <a href="/">Tableau de bord</a>
-                    <button class="clear-btn" onclick="clearHistory()">Supprimer l'historique</button>
                     <a href="/logout">Déconnexion</a>
                 </div>
             </div>
         </header>
-        
-        <div id="alert" class="alert"></div>
         
         <div class="table-container">
             {% if history %}
@@ -244,7 +202,11 @@
                     {% set prob_class = "high-prob" if probability > 70 else "medium-prob" if probability > 30 else "low-prob" %}
                     <tr>
                         <td class="timestamp-cell">
-                            {{ entry.timestamp | datetimeformat }}
+                            {% if entry.timestamp is number %}
+                                {{ entry.timestamp | datetimeformat }}
+                            {% else %}
+                                {{ entry.timestamp }}
+                            {% endif %}
                         </td>
                         <td>{{ entry.parametres_machine[0] }}</td>
                         <td>{{ entry.parametres_machine[1] }}</td>
@@ -270,46 +232,5 @@
             {% endif %}
         </div>
     </div>
-
-    <script>
-        function showAlert(message, type) {
-            const alert = document.getElementById('alert');
-            alert.textContent = message;
-            alert.className = `alert alert-${type}`;
-            alert.style.display = 'block';
-            
-            setTimeout(() => {
-                alert.style.display = 'none';
-            }, 5000);
-        }
-
-        function clearHistory() {
-            if (!confirm('Êtes-vous sûr de vouloir supprimer tout l\'historique ? Cette action est irréversible.')) {
-                return;
-            }
-            
-            fetch('/clear_history', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert(data.message, 'success');
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    showAlert(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                showAlert('Erreur lors de la suppression de l\'historique', 'error');
-                console.error('Error:', error);
-            });
-        }
-    </script>
 </body>
 </html>
