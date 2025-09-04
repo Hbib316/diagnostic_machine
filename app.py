@@ -19,7 +19,8 @@ latest_data = {
 }
 
 # MQTT configuration - utiliser des variables d'environnement
-MQTT_BROKER = os.environ.get("MQTT_BROKER", "d736909d58a34fa6930bc5f9398c1c1b.s1.eu.hivemq.cloud")
+# Remplacer la configuration MQTT
+MQTT_BROKER = "wss://d736909d58a34fa6930bc5f9398c1c1b.s1.eu.hivemq.cloud:8884/mqtt"
 MQTT_PORT = int(os.environ.get("MQTT_PORT", 8883))
 MQTT_TOPIC = os.environ.get("MQTT_TOPIC", "diagnostic_machine")
 MQTT_USER = os.environ.get("MQTT_USER", "habib")
