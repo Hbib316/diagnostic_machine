@@ -85,7 +85,7 @@ def insert_history(data, prediction):
             fault_probability, is_fault, model_status
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
-        data["timestamp"],
+        float(data["timestamp"]),
         data["parametres_machine"][0],
         data["parametres_machine"][1],
         data["parametres_machine"][2],
@@ -114,7 +114,7 @@ def on_message(client, userdata, msg):
             with data_lock:
                 latest_data = {
                     "parametres_machine": params,
-                    "timestamp": data.get("timestamp", time.time()),
+                    "timestamp": data.get("timestamp_epoch", time.time()),
                     "ml_prediction": prediction
                 }
             insert_history(latest_data, prediction)
