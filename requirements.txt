@@ -1,0 +1,6 @@
+Flask
+paho-mqtt
+bcrypt
+scikit-learn
+numpy
+joblib
