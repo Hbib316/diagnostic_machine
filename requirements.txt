@@ -1,7 +1,0 @@
-flask
-paho-mqtt
-bcrypt
-numpy
-scikit-learn
-joblib
-gunicorn
